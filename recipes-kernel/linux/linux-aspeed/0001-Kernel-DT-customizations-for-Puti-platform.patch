@@ -1,0 +1,297 @@
+From 27f8a6d8c52fff6100edaf7d093f1185989af9d8 Mon Sep 17 00:00:00 2001
+From: Zheng Song <zheng.song@intel.com>
+Date: Fri, 29 Apr 2022 17:10:03 +0800
+Subject: [PATCH] Kernel DT customizations for Puti platform
+
+Signed-off-by: Zheng Song <zheng.song@intel.com>
+---
+ .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 279 ++++++++++++++++++
+ 1 file changed, 279 insertions(+)
+ create mode 100644 arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
+new file mode 100644
+index 000000000000..d326e68ca7dc
+--- /dev/null
++++ b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
+@@ -0,0 +1,279 @@
++// SPDX-License-Identifier: GPL-2.0+
++
++#include "aspeed-bmc-intel-ast2600.dts"
++
++/ {
++    /delete-node/ vga-shared-memory; /* as puti BIOS does NOT transfer SMBIOS info with this approach. */
++    /delete-node/ leds;
++    /delete-node/ beeper;
++};
++
++/ {
++    iio-hwmon {
++        io-channels = <&adc0 0>, <&adc0 1>, <&adc0 2>, <&adc0 3>,
++        <&adc0 4>, <&adc0 5>, <&adc0 6>, <&adc0 7>,
++        <&adc1 0>, <&adc1 1>, <&adc1 2>, <&adc1 3>;
++    };
++};
++
++&adc0 {
++    aspeed,int-vref-microvolt = <2500000>; /* use SOC internal reference source 2.5V */
++    aspeed,battery-sensing;
++    status = "okay";
++};
++
++&adc1 {
++    aspeed,int-vref-microvolt = <2500000>;
++    /delete-property/ aspeed,battery-sensing;
++    status = "okay";
++};
++
++&gpio0 {
++	gpio-line-names =
++	/*A0-A7*/	"","","","","","","","",
++	/*B0-B7*/	"","WDT_IN","","","","","IRQ_SMI_ACTIVE_BMC","FM_BMC_CRASHLOG_TRIG",
++	/*C0-C7*/	"","","","","","","","",
++	/*D0-D7*/	"","","","","","","","",
++	/*E0-E7*/	"","","","","","","","",
++	/*F0-F7*/	"","FM_CPU_RMCA_N","FM_PLT_BMC_THERMTRIP_N","","FM_REMOTE_DEBUG_EN_DET","","RSVD_BMC_TPCM_WP","FM_JTAG_TCK_MUX_SEL",
++	/*G0-G7*/	"DBP_CPU_PREQ_N","","H_BMC_CPU_PRDY_BUF_N","BMC_JTAG_SEL","FM_BMC_CPU_PWR_DEBUG_N","JTAG_PLD_SWITCH","PWRGD_SYS_PWROK_R","JTAG_PLD_OE_N",
++	/*H0-H7*/	"SGPIO_BMC_R_CLK","SGPIO_BMC_R_LD","SGPIO_BMC_R_DOUT","SGPIO_BMC_R_DIN","","","","",
++	/*I0-I7*/	"","","","","","","","IRQ_FORCE_NM_THROTTLE_BMC_N",
++	/*J0-J7*/	"","","","","","","","",
++	/*K0-K7*/	"","","","","","","","",
++	/*L0-L7*/	"","","","","PD_DP_POWER_EN","","","",
++	/*M0-M7*/	"","","","","","","","",
++	/*N0-N7*/	"","","","","","FM_SPD_SWITCH_CTRL_N","","",
++	/*O0-O7*/	"PSU4_ACOK","PSU3_ACOK","PSU2_ACOK","PSU1_ACOK","PSU4_PRSNT","PSU3_PRSNT","PSU2_PRSNT","PSU1_PRSNT",
++	/*P0-P7*/	"PSU4_ALERT","PSU3_ALERT","PSU2_ALERT","","","PSU1_ALERT","FM_PCH_GLB_RST_WARN_R_N","LED_BMC_HB_LED_N",
++	/*Q0-Q7*/	"","","","","","","","",
++	/*R0-R7*/	"","","FM_BIOS_POST_CMPLT_BMC_N","","","FM_BMC_OC_DP_LVC3_N","FM_M2_1_PRSNT_N","FM_M2_0_PRSNT_N",
++	/*S0-S7*/	"","","","RST_PLTRST_BMC_N","BMC_RESET_CPLD_I2C_N","FM_BATTERY_SENSE_EN","FM_DBP_PRESENT_N","PLD_HITLESS_DONE",
++	/*T0-T7*/	"","","","","","","","",
++	/*U0-U7*/	"","","","","","","","",
++	/*V0-V7*/	"FM_SLPS3_BMC_R_N","FM_SLPS4_BMC_R_N","","FM_BMC_ONCTL_N","","BMC_READY_OUT_N","IRQ_SML1_PMBUS_ALERT_BMC_N","RST_RTL8211_REST_TTL_N",
++	/*W0-W7*/	"","","","","","","","",
++	/*X0-X7*/	"","","","","","","","",
++	/*Y0-Y7*/	"FM_FORCE_BMC_UPDATE_N","IRQ_SML0_ALERT_BMC_N","CPLD_HITLESS_EN_N","RST_EMMC_N","","","","",
++	/*Z0-Z7*/	"","","","","","","","";
++};
++
++&gpio1 {
++	status = "disabled";
++	gpio-line-names = /* GPIO18 A-E */
++	/*A0-A7*/	"","","","","","","","",
++	/*B0-B7*/	"","","","","","","","",
++	/*C0-C7*/	"","","","","","","","",
++	/*D0-D7*/	"","","","","","","","",
++	/*E0-E3*/	"","","","";
++};
++
++/* SGPIO connection is reserved for future use. */
++&sgpiom0 {
++	ngpios = <80>;
++	bus-frequency = <2000000>;
++	status = "disabled";
++	/* SGPIO lines. even: input, odd: output */
++	gpio-line-names =
++	/*A0-A7*/	"","","","","","","","","","","","","","","","",
++	/*B0-B7*/	"","","","","","","","","","","","","","","","",
++	/*C0-C7*/	"","","","","","","","","","","","","","","","",
++	/*D0-D7*/	"","","","","","","","","","","","","","","","",
++	/*E0-E7*/	"","","","","","","","","","","","","","","","",
++	/*F0-F7*/	"","","","","","","","","","","","","","","","",
++	/*G0-G7*/	"","","","","","","","","","","","","","","","",
++	/*H0-H7*/	"","","","","","","","","","","","","","","","",
++	/*I0-I7*/	"","","","","","","","","","","","","","","","",
++	/*J0-J7*/	"","","","","","","","","","","","","","","","";
++};
++
++&mdio0 {
++    status = "okay";
++    ethphy0: ethernet-phy@0 {
++        compatible = "ethernet-phy-ieee802.3-c22";
++        reg = <0>;
++    };
++};
++
++&mdio1 {
++    status = "disabled";
++};
++
++&mdio2 {
++    status = "disabled";
++};
++
++&mdio3 {
++    status = "disabled";
++};
++
++&mac0 {
++    status = "disabled";
++};
++
++&mac1 {
++    status = "disabled";
++};
++
++/* NCSI */
++&mac2 {
++    status = "okay";
++    use-ncsi;
++    pinctrl-names = "default";
++    pinctrl-0 = <&pinctrl_rmii3_default>;
++    clocks = <&syscon ASPEED_CLK_GATE_MAC3CLK>,
++         <&syscon ASPEED_CLK_MAC3RCLK>;
++    clock-names = "MACCLK", "RCLK";
++    phy-mode = "rmii";
++};
++
++/* Dedicated Lan */
++&mac3 {
++    status = "okay";
++    pinctrl-names = "default";
++    pinctrl-0 = <&pinctrl_rgmii4_default>;
++    phy-mode = "rgmii";
++    phy-handle = <&ethphy0>; /* RGMII4 with MDIO1 */
++};
++
++&i2c0 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++&i2c1 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++&i2c2 {
++	/* reserved */
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c3 {
++	/* reserved */
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c4 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c5 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c6 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c7 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c8 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c9 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c10 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c11 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c12 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c13 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++
++&i2c14 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++&i2c15 {
++	multi-master;
++	aspeed,hw-timeout-ms = <300>;
++	status = "okay";
++};
++
++&i3cglobal {
++	status = "disabled";
++};
++
++&i3c0 {
++	status = "disabled";
++};
++
++&i3c1 {
++	status = "disabled";
++};
++
++&i3c2 {
++	status = "disabled";
++};
++
++&i3c3 {
++	status = "disabled";
++};
++
++&i3c4 {
++	status = "disabled";
++};
++
++&i3c5 {
++	status = "disabled";
++};
++
++&pwm_tacho {
++	status = "disabled";
++};
+\ No newline at end of file

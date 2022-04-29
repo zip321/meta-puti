@@ -1,15 +1,15 @@
-MACHINE ??= "intel-ast2600"
+MACHINE ??= "intel-ast2600-puti"
 DISTRO ?= "openbmc-phosphor"
 PACKAGE_CLASSES ?= "package_rpm"
 SANITY_TESTED_DISTROS:append ?= " RedHatEnterpriseWorkstation-6.*"
 EXTRA_IMAGE_FEATURES = "validation-unsecure"
 # Uncomment the following line to enable debug features / default user account.
-#EXTRA_IMAGE_FEATURES += "debug-tweaks"
+EXTRA_IMAGE_FEATURES += "debug-tweaks"
 USER_CLASSES ?= "buildstats"
 PATCHRESOLVE = "noop"
 
 # PFR image Build
-IMAGE_FSTYPES += "intel-pfr"
+#IMAGE_FSTYPES += "intel-pfr"
 
 # Add license files to rootfs (/usr/share/common-licenses):
 COPY_LIC_MANIFEST = "1"

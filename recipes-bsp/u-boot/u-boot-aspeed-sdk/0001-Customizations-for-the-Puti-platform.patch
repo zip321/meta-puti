@@ -1,0 +1,285 @@
+From fd433b5429e952c2384244bc556a52ff6d257df9 Mon Sep 17 00:00:00 2001
+From: Zheng Song <zheng.song@intel.com>
+Date: Fri, 8 Apr 2022 11:03:37 +0800
+Subject: [PATCH] Customizations for the Puti platform
+
+Signed-off-by: Zheng Song <zheng.song@intel.com>
+---
+ arch/arm/dts/ast2600-intel.dts     | 85 ++++++++++++++++++++++++++++--
+ board/aspeed/ast2600_intel/intel.c | 31 ++++++++---
+ 2 files changed, 106 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/dts/ast2600-intel.dts b/arch/arm/dts/ast2600-intel.dts
+index dba62fd254..5e46267b02 100644
+--- a/arch/arm/dts/ast2600-intel.dts
++++ b/arch/arm/dts/ast2600-intel.dts
+@@ -39,6 +39,7 @@
+ 		};
+ 	};
+
++#if 0
+ 	system-leds {
+ 		compatible = "gpio-leds";
+ 		green-led {
+@@ -62,8 +63,10 @@
+ 			default-state = "on";
+ 		};
+ 	};
++#endif
+ };
+
++#if 0
+ &pwm {
+ 	status = "okay";
+
+@@ -74,6 +77,7 @@
+ 		     &pinctrl_pwm12g1_default &pinctrl_pwm13g1_default
+ 		     &pinctrl_pwm14g1_default &pinctrl_pwm15g1_default>;
+ };
++#endif
+
+ &gpio0 {
+ 	status = "okay";
+@@ -114,7 +118,7 @@
+ &mdio {
+ 	status = "okay";
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_mdio2_default>;
++	pinctrl-0 = <&pinctrl_mdio1_default>;
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+ 	ethphy0: ethernet-phy@0 {
+@@ -134,12 +138,21 @@
+ 	};
+ };
+
+-&mac1 {
++&mac2 {
+ 	status = "okay";
++	phy-mode = "NC-SI";
++	use-ncsi;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_rmii3_default>;
++};
++
++&mac3 {
++	status = "okay";
++	reg = <0x1e690000 0x180>, <0x1e650000 0x4>;
+ 	phy-mode = "rgmii";
+-	phy-handle = <&ethphy1>;
++	phy-handle = <&ethphy0>;
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_rgmii2_default>;
++	pinctrl-0 = <&pinctrl_rgmii4_default>;
+ };
+
+ &fmc {
+@@ -166,6 +179,38 @@
+ 	pinctrl-0 = <&pinctrl_emmc_default>;
+ };
+
++&i2c0 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c1_default>;
++};
++
++&i2c1 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c2_default>;
++};
++
++&i2c2 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c3_default>;
++};
++
++&i2c3 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c4_default>;
++};
++
+ &i2c4 {
+ 	status = "okay";
+ 	multi-master;
+@@ -214,6 +259,22 @@
+ 	pinctrl-0 = <&pinctrl_i2c10_default>;
+ };
+
++&i2c10 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c11_default>;
++};
++
++&i2c11 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c12_default>;
++};
++
+ &i2c12 {
+ 	status = "okay";
+ 	multi-master;
+@@ -230,6 +291,22 @@
+ 	pinctrl-0 = <&pinctrl_i2c14_default>;
+ };
+
++&i2c14 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c15_default>;
++};
++
++&i2c15 {
++	status = "okay";
++	multi-master;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c16_default>;
++};
++
+ &pcie_bridge1 {
+ 	status = "okay";
+ };
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index 5687b5e1d4..26157d6a1c 100644
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -69,6 +69,8 @@ int intel_failed_boot(void)
+
+ int read_ffuj(void)
+ {
++	/* Disable gpio reading and relative function. */
++	return 0;
+ 	struct gpio_desc desc;
+ 	int ret;
+
+@@ -122,6 +124,8 @@ int gpio_abort(void)
+
+ int read_frontpanel_power_button(void)
+ {
++	/* Disable gpio reading and relative function. */
++	return 0;
+ #define FP_PWRBTN_GPIO "gpio@1e780000122" /* GPIOP2 */
+ 	struct gpio_desc desc;
+ 	int ret;
+@@ -256,6 +260,7 @@ static void port80h_snoop_init(void)
+
+ #define AST_GPIO_BASE		0x1e780000
+
++/* Puti used SGPIOM with CPLD */
+ static void sgpio_init(void)
+ {
+ #define SGPIO_CLK_DIV(N)	((N) << 16)
+@@ -500,7 +505,9 @@ int board_early_init_f(void)
+ 	/* This is called before relocation; beware! */
+ 	arch_interrupt_init_early();
+
++	/* Disable Intel board specific gpio settings
+ 	set_gpio_default_state();
++	*/
+
+ 	port80h_snoop_init();
+
+@@ -519,9 +526,13 @@ int board_early_init_r(void)
+
+ 	mailbox_init();
+
++	/* Disable Intel board specific gpio settings
+ 	enable_onboard_tpm();
++	*/
+
++	/* Disable Intel board specific gpio settings
+ 	led_default_state();
++	*/
+ #ifdef CONFIG_LED_BLINK
+ 	ret = led_get_by_label("id", &dev);
+ 	if (!ret)
+@@ -592,6 +603,8 @@ static void update_bootargs_cmd(const char *key, const char *value)
+
+ static bool is_mfg_mode_phy_req(void)
+ {
++	/* Disable Intel board specific gpio settings */
++	return false;
+ 	/*
+ 	 * Assume mfg mode physical request is made, if power button
+ 	 * is pressed continously for 15 seconds, indicate the
+@@ -642,18 +655,20 @@ static bool is_mfg_mode_phy_req(void)
+
+ static u8 get_board_id(void)
+ {
++	/* Hard code for Puti. TODO get real board id from CPLD via i2c */
++	return 0xAA;
+ 	return ~(readl(AST_GPIO_BASE + GPIO_020) >> 8) & GENMASK(5,0);
+ }
+
+ static void set_dtb(u8 board_id)
+ {
+-#define BOARD_ID_ARCHER_CITY_M	0x02
+-	const char acm_dtb[] = "#conf-aspeed-bmc-intel-ast2600-acm.dtb";
++#define BOARD_ID_PUTI			0xAA
++	const char puti_dtb[] = "#conf-aspeed-bmc-intel-ast2600-puti.dtb";
+ 	char *bootcmd;
+ 	char *trunc;
+
+-	if (board_id == BOARD_ID_ARCHER_CITY_M) {
+-		int buf_len, acm_dtb_len = strlen(acm_dtb);
++	if (board_id == BOARD_ID_PUTI) {
++		int buf_len, puti_dtb_len = strlen(puti_dtb);
+ 		char *buf;
+
+ 		bootcmd = env_get("bootcmd");
+@@ -664,13 +679,13 @@ static void set_dtb(u8 board_id)
+ 		if (trunc)
+ 			*trunc = '\0';
+
+-		buf_len = strlen(bootcmd) + acm_dtb_len + 1;
++		buf_len = strlen(bootcmd) + puti_dtb_len + 1;
+ 		buf = malloc(buf_len);
+ 		if (!buf) {
+ 			printf("%s: out of memory\n", __func__);
+ 			return;
+ 		}
+-		snprintf(buf, buf_len, "%s%s", bootcmd, acm_dtb);
++		snprintf(buf, buf_len, "%s%s", bootcmd, puti_dtb);
+ 		env_set("bootcmd", buf);
+ 		free(buf);
+ 	}
+@@ -695,7 +710,9 @@ int board_late_init(void)
+ 		     timer_callback, (void *)1);
+ #endif
+
++	/* Disable Intel board specific gpio settings
+ 	pwm_init();
++	*/
+
+ 	disable_bmc_mmio_decode_vga();
+
+@@ -718,7 +735,9 @@ int board_late_init(void)
+ 	if (gd->reset_reason & SYS_PWR_RESET_FLAG && is_mfg_mode_phy_req())
+ 		update_bootargs_cmd("special", "mfg");
+
++	/* Disable Intel board specific gpio settings
+ 	gpio_passthru_init();
++	*/
+
+ 	if (read_ffuj()) {
+ 		espi_init();
