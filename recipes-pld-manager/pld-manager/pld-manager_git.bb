@@ -10,6 +10,8 @@ inherit systemd
 
 DEPENDS:append = " \
     systemd \
+    sdbusplus \
+    phosphor-logging \
     "
 
 # Modify these as desired
