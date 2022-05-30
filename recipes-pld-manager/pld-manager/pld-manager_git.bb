@@ -16,7 +16,7 @@ DEPENDS:append = " \
 
 # Modify these as desired
 PV = "1.0+git${SRCPV}"
-SRCREV = "39b1ab6207e8ce1d3bfd7d0da03620724301e33f"
+SRCREV = "0640d816874d385b396cd225009102b2c64eec98"
 
 S = "${WORKDIR}/git"
 
