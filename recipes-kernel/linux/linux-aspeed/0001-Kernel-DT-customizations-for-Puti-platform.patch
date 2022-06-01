@@ -1,20 +1,20 @@
-From 27f8a6d8c52fff6100edaf7d093f1185989af9d8 Mon Sep 17 00:00:00 2001
+From 8c3d0b650f2a3789dd986d18e17c4b06d5d390dd Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Fri, 29 Apr 2022 17:10:03 +0800
 Subject: [PATCH] Kernel DT customizations for Puti platform
 
 Signed-off-by: Zheng Song <zheng.song@intel.com>
 ---
- .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 279 ++++++++++++++++++
- 1 file changed, 279 insertions(+)
+ .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 304 ++++++++++++++++++
+ 1 file changed, 304 insertions(+)
  create mode 100644 arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 
 diff --git a/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 new file mode 100644
-index 000000000000..d326e68ca7dc
+index 000000000000..9330e75f52c4
 --- /dev/null
 +++ b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
-@@ -0,0 +1,279 @@
+@@ -0,0 +1,304 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +
 +#include "aspeed-bmc-intel-ast2600.dts"
@@ -26,6 +26,11 @@ index 000000000000..d326e68ca7dc
 +};
 +
 +/ {
++	aliases {
++		i2c20= &imuxch_9_0;
++		i2c21= &imuxch_9_1;
++	};
++
 +    iio-hwmon {
 +        io-channels = <&adc0 0>, <&adc0 1>, <&adc0 2>, <&adc0 3>,
 +        <&adc0 4>, <&adc0 5>, <&adc0 6>, <&adc0 7>,
@@ -220,6 +225,26 @@ index 000000000000..d326e68ca7dc
 +	multi-master;
 +	aspeed,hw-timeout-ms = <300>;
 +	status = "okay";
++
++	i2c-mux@71 {
++		/* U37 */
++		compatible = "nxp,pca9543";
++		reg = <0x71>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		imuxch_9_0: i2c@0 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <0>;
++		};
++
++		imuxch_9_1: i2c@1 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <1>;
++		};
++	};
 +};
 +
 +
