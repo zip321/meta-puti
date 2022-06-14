@@ -1,4 +1,4 @@
-From be03d1fe8c8936b465fd21809ed4db3be26c2ae3 Mon Sep 17 00:00:00 2001
+From 3c76efc980e2c44d4ec35d84d596411a3a989e7e Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Fri, 8 Apr 2022 11:03:37 +0800
 Subject: [PATCH] Customizations for the Puti platform
@@ -6,12 +6,12 @@ Subject: [PATCH] Customizations for the Puti platform
 Signed-off-by: Zheng Song <zheng.song@intel.com>
 
 ---
- arch/arm/dts/ast2600-intel.dts     | 92 ++++++++++++++++++++++++++++--
- board/aspeed/ast2600_intel/intel.c | 31 ++++++++--
- 2 files changed, 111 insertions(+), 12 deletions(-)
+ arch/arm/dts/ast2600-intel.dts     | 100 ++++++++++++++++++++++++++---
+ board/aspeed/ast2600_intel/intel.c |  31 +++++++--
+ 2 files changed, 115 insertions(+), 16 deletions(-)
 
 diff --git a/arch/arm/dts/ast2600-intel.dts b/arch/arm/dts/ast2600-intel.dts
-index dba62fd254..1064f5b8c2 100644
+index dba62fd254..0dd9368233 100644
 --- a/arch/arm/dts/ast2600-intel.dts
 +++ b/arch/arm/dts/ast2600-intel.dts
 @@ -39,6 +39,7 @@
@@ -50,7 +50,7 @@ index dba62fd254..1064f5b8c2 100644
  	#address-cells = <1>;
  	#size-cells = <0>;
  	ethphy0: ethernet-phy@0 {
-@@ -134,12 +138,21 @@
+@@ -134,24 +138,33 @@
  	};
  };
  
@@ -75,6 +75,22 @@ index dba62fd254..1064f5b8c2 100644
  };
  
  &fmc {
+ 	status = "okay";
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_fmcquad_default>;
++	// pinctrl-names = "default";
++	// pinctrl-0 = <&pinctrl_fmcquad_default>; /* Hardware connection not support QSPI */
+ 	flash@0 {
+ 		compatible = "spi-flash", "sst,w25q256";
+ 		status = "okay";
+ 		spi-max-frequency = <40000000>;
+-		spi-tx-bus-width = <4>;
+-		spi-rx-bus-width = <4>;
++		spi-tx-bus-width = <2>; /* dual mode */
++		spi-rx-bus-width = <2>; /* dual mode */
+ 	};
+ };
+ 
 @@ -166,6 +179,38 @@
  	pinctrl-0 = <&pinctrl_emmc_default>;
  };
