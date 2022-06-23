@@ -3,9 +3,7 @@ DESCRIPTION = "Service to monitor and interact with platform CPLD."
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=86d3f3a95c324c9479bd8986968f4327"
 
-SRC_URI = "git://github.com/intel-sandbox/firmware.bmc.openbmc.applications.pld-managerd.git;protocol=https;branch=main \
-           file://0001-Temporarily-implement-to-cpld-ready-hrbt-func.patch \
-           "
+SRC_URI = "git://github.com/intel-sandbox/firmware.bmc.openbmc.applications.pld-managerd.git;protocol=https;branch=main"
 
 inherit meson pkgconfig
 inherit systemd
@@ -19,7 +17,7 @@ DEPENDS:append = " \
 
 # Modify these as desired
 PV = "1.0+git${SRCPV}"
-SRCREV = "0640d816874d385b396cd225009102b2c64eec98"
+SRCREV = "b4420c09fea8a7bae90ff785edfee93e3cec3b4b"
 
 S = "${WORKDIR}/git"
 
