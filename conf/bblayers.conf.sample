@@ -26,5 +26,4 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-openbmc-mods/meta-egs \
   ##OEROOT##/meta-openbmc-mods/meta-puti \
   ##OEROOT##/meta-security \
-  ##OEROOT##/meta-openbmc-mods/meta-restricted \
   "
