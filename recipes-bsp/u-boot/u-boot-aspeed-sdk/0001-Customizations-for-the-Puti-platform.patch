@@ -1,4 +1,4 @@
-From 3c76efc980e2c44d4ec35d84d596411a3a989e7e Mon Sep 17 00:00:00 2001
+From ca47f0b5c4a5485cb4d86a24ef84528a75b77c33 Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Fri, 8 Apr 2022 11:03:37 +0800
 Subject: [PATCH] Customizations for the Puti platform
@@ -6,12 +6,13 @@ Subject: [PATCH] Customizations for the Puti platform
 Signed-off-by: Zheng Song <zheng.song@intel.com>
 
 ---
- arch/arm/dts/ast2600-intel.dts     | 100 ++++++++++++++++++++++++++---
- board/aspeed/ast2600_intel/intel.c |  31 +++++++--
- 2 files changed, 115 insertions(+), 16 deletions(-)
+ arch/arm/dts/ast2600-intel.dts          | 102 +++++++++++++++++++++---
+ arch/arm/mach-aspeed/ast2600/platform.S |  10 ++-
+ board/aspeed/ast2600_intel/intel.c      |  31 +++++--
+ 3 files changed, 124 insertions(+), 19 deletions(-)
 
 diff --git a/arch/arm/dts/ast2600-intel.dts b/arch/arm/dts/ast2600-intel.dts
-index dba62fd254..0dd9368233 100644
+index dba62fd254..898dd5fc30 100644
 --- a/arch/arm/dts/ast2600-intel.dts
 +++ b/arch/arm/dts/ast2600-intel.dts
 @@ -39,6 +39,7 @@
@@ -41,6 +42,15 @@ index dba62fd254..0dd9368233 100644
  
  &gpio0 {
  	status = "okay";
+@@ -84,7 +88,7 @@
+ };
+ 
+ &uart2 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &uart5 {
 @@ -114,7 +118,7 @@
  &mdio {
  	status = "okay";
@@ -189,6 +199,28 @@ index dba62fd254..0dd9368233 100644
 +			  0x0a 0x08
 +			  0x0a 0x08>;
  };
+diff --git a/arch/arm/mach-aspeed/ast2600/platform.S b/arch/arm/mach-aspeed/ast2600/platform.S
+index cc1d6b7a61..f662946ab7 100644
+--- a/arch/arm/mach-aspeed/ast2600/platform.S
++++ b/arch/arm/mach-aspeed/ast2600/platform.S
+@@ -222,9 +222,15 @@ do_primary_core_setup:
+ 	str	r1, [r0]
+ 
+ 	/* enable ACPI */
++	/* Comment out below for Puti Platform, as ACPI is not support */
++	// ldr	r0, =AST_SCU_HW_STRAP2
++	// ldr	r1, [r0]
++	// orr	r1, #0x20		@; Enable ACPI
++	// str	r1, [r0]
++
++	/* Overrides strap setting, switch SuperIO configuration address to 0x4E for Puti */
+ 	ldr	r0, =AST_SCU_HW_STRAP2
+-	ldr	r1, [r0]
+-	orr	r1, #0x20		@; Enable ACPI
++	movw	r1, #0x0004
+ 	str	r1, [r0]
+ 
+ 	/* identify AST2600 A0/A1 */
 diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
 index 5687b5e1d4..26157d6a1c 100644
 --- a/board/aspeed/ast2600_intel/intel.c
