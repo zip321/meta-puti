@@ -1,20 +1,20 @@
-From b5dfb1f1d864f613b9c615e91e6011c243d6c866 Mon Sep 17 00:00:00 2001
+From 488cebe6d31bbe2b0550abe025134e03bc7ffa52 Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Fri, 29 Apr 2022 17:10:03 +0800
 Subject: [PATCH] Kernel DT customizations for Puti platform
 
 Signed-off-by: Zheng Song <zheng.song@intel.com>
 ---
- .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 339 ++++++++++++++++++
- 1 file changed, 339 insertions(+)
+ .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 354 ++++++++++++++++++
+ 1 file changed, 354 insertions(+)
  create mode 100644 arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 
 diff --git a/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 new file mode 100644
-index 000000000000..5d63633f59e8
+index 000000000000..cc323be9a174
 --- /dev/null
 +++ b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,354 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +
 +#include "aspeed-bmc-intel-ast2600.dts"
@@ -71,6 +71,21 @@ index 000000000000..5d63633f59e8
 +		m25p,fast-read;
 +#include "openbmc-flash-layout-intel-64MB.dtsi"
 +	};
++};
++
++&spi1 {
++       status = "okay";
++       pinctrl-names = "default";
++       pinctrl-0 = <&pinctrl_spi1_default>;
++
++       flash@0 {
++               status = "okay";
++               m25p,fast-read;
++               label = "bios";
++               spi-max-frequency = <50000000>;
++               spi-tx-bus-width = <1>;
++               spi-rx-bus-width = <1>;
++       };
 +};
 +
 +&adc0 {
