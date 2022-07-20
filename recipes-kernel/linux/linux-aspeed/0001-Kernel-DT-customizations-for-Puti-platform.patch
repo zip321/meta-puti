@@ -1,20 +1,20 @@
-From 488cebe6d31bbe2b0550abe025134e03bc7ffa52 Mon Sep 17 00:00:00 2001
+From 00c2aa2c8eedb2ad0d5e39bbee0d48749ed603f4 Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Fri, 29 Apr 2022 17:10:03 +0800
 Subject: [PATCH] Kernel DT customizations for Puti platform
 
 Signed-off-by: Zheng Song <zheng.song@intel.com>
 ---
- .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 354 ++++++++++++++++++
- 1 file changed, 354 insertions(+)
+ .../dts/aspeed-bmc-intel-ast2600-puti.dts     | 350 ++++++++++++++++++
+ 1 file changed, 350 insertions(+)
  create mode 100644 arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 
 diff --git a/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
 new file mode 100644
-index 000000000000..cc323be9a174
+index 000000000000..04826b0217e9
 --- /dev/null
 +++ b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-puti.dts
-@@ -0,0 +1,354 @@
+@@ -0,0 +1,350 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +
 +#include "aspeed-bmc-intel-ast2600.dts"
@@ -336,10 +336,6 @@ index 000000000000..cc323be9a174
 +	multi-master;
 +	aspeed,hw-timeout-ms = <300>;
 +	status = "okay";
-+};
-+
-+&i3cglobal {
-+	status = "disabled";
 +};
 +
 +&i3c0 {

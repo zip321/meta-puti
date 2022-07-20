@@ -1,4 +1,4 @@
-From 9e05e98f6c31225d9fe54168cf6313b34bdf508c Mon Sep 17 00:00:00 2001
+From 6e9c663f312e9b2e676d544afa4a548970d31249 Mon Sep 17 00:00:00 2001
 From: Zheng Song <zheng.song@intel.com>
 Date: Mon, 30 May 2022 17:00:04 +0800
 Subject: [PATCH] Adapt x86 power control to Puti paltform
@@ -8,12 +8,12 @@ instead of using BMC to manipulate relevant GPIO directly.
 This commit fills the gap. Adapt the x86 power control to the CPLD
 interfaces.
 
-
 Signed-off-by: Zheng Song <zheng.song@intel.com>
+
 ---
- config/power-config-host0.json | 106 +++++----
- src/power_control.cpp          | 389 +++++++++++++++++++++++++--------
- 2 files changed, 361 insertions(+), 134 deletions(-)
+ config/power-config-host0.json | 106 ++++++----
+ src/power_control.cpp          | 372 ++++++++++++++++++++++++++-------
+ 2 files changed, 352 insertions(+), 126 deletions(-)
 
 diff --git a/config/power-config-host0.json b/config/power-config-host0.json
 index 12c3309..411a077 100644
@@ -163,7 +163,7 @@ index 12c3309..411a077 100644
        "PsPowerOKWatchdogMs": 8000,
        "GracefulPowerOffS": 300,
 diff --git a/src/power_control.cpp b/src/power_control.cpp
-index f5e1c95..b537100 100644
+index 21c19dd..aaf4607 100644
 --- a/src/power_control.cpp
 +++ b/src/power_control.cpp
 @@ -53,7 +53,9 @@ boost::container::flat_map<DbusConfigType, std::string> dbusParams = {
@@ -219,7 +219,7 @@ index f5e1c95..b537100 100644
      {"ResetButton", &resetButtonConfig},
      {"IdButton", &idButtonConfig},
      {"NMIButton", &nmiButtonConfig},
-@@ -283,6 +297,8 @@ enum class Event
+@@ -277,6 +291,8 @@ enum class Event
      postCompleteAssert,
      postCompleteDeAssert,
      powerButtonPressed,
@@ -228,7 +228,7 @@ index f5e1c95..b537100 100644
      resetButtonPressed,
      powerCycleTimerExpired,
      psPowerOKWatchdogTimerExpired,
-@@ -333,6 +349,12 @@ static std::string getEventName(Event event)
+@@ -327,6 +343,12 @@ static std::string getEventName(Event event)
          case Event::powerButtonPressed:
              return "power button pressed";
              break;
@@ -241,7 +241,7 @@ index f5e1c95..b537100 100644
          case Event::resetButtonPressed:
              return "reset button pressed";
              break;
-@@ -1234,8 +1256,37 @@ static int assertGPIOForMs(const ConfigData& config, const int durationMs)
+@@ -1200,8 +1222,35 @@ static int assertGPIOForMs(const ConfigData& config, const int durationMs)
      return setGPIOOutputForMs(config, config.polarity, durationMs);
  }
  
@@ -253,9 +253,8 @@ index f5e1c95..b537100 100644
 +            [&](boost::system::error_code ec) {
 +                if (ec)
 +                {
-+                    std::string logMsg = "failed to do " + cfg.lineName;
-+                    phosphor::logging::log<phosphor::logging::level::INFO>(
-+                        logMsg.c_str());
++                    lg2::info("failed to do {LINE_NAME}",
++                              "LINE_NAME", cfg.lineName);
 +                }
 +            },
 +            cfg.dbusName, cfg.path,
@@ -263,8 +262,7 @@ index f5e1c95..b537100 100644
 +    }
 +    else
 +    {
-+        phosphor::logging::log<phosphor::logging::level::ERR>(
-+            "error calling to dbusGPIOMethodCall");
++        lg2::error("error calling to dbusGPIOMethodCall");
 +    }
 +}
 +
@@ -279,7 +277,7 @@ index f5e1c95..b537100 100644
      assertGPIOForMs(powerOutConfig, TimerMap["PowerPulseMs"]);
  }
  #ifdef CHASSIS_SYSTEM_RESET
-@@ -1322,11 +1373,22 @@ static void slotPowerCycle()
+@@ -1279,11 +1328,22 @@ static void slotPowerCycle()
  #endif
  static void gracefulPowerOff()
  {
@@ -302,7 +300,7 @@ index f5e1c95..b537100 100644
      if (assertGPIOForMs(powerOutConfig, TimerMap["ForceOffPulseMs"]) < 0)
      {
          return;
-@@ -1355,6 +1417,11 @@ static void forcePowerOff()
+@@ -1309,6 +1369,11 @@ static void forcePowerOff()
  
  static void reset()
  {
@@ -314,7 +312,7 @@ index f5e1c95..b537100 100644
      assertGPIOForMs(resetOutConfig, TimerMap["ResetPulseMs"]);
  }
  
-@@ -1689,6 +1756,9 @@ static void powerStateOn(const Event event)
+@@ -1607,6 +1672,9 @@ static void powerStateOn(const Event event)
              setPowerState(PowerState::gracefulTransitionToOff);
              gracefulPowerOffTimerStart();
              break;
@@ -324,7 +322,7 @@ index f5e1c95..b537100 100644
          case Event::powerOffRequest:
              setPowerState(PowerState::transitionToOff);
              forcePowerOff();
-@@ -1794,6 +1864,7 @@ static void powerStateOff(const Event event)
+@@ -1709,6 +1777,7 @@ static void powerStateOff(const Event event)
          case Event::sioS5DeAssert:
              setPowerState(PowerState::waitForPSPowerOK);
              break;
@@ -332,7 +330,7 @@ index f5e1c95..b537100 100644
          case Event::powerButtonPressed:
              psPowerOKWatchdogTimerStart();
              setPowerState(PowerState::waitForPSPowerOK);
-@@ -1839,6 +1910,9 @@ static void powerStateGracefulTransitionToOff(const Event event)
+@@ -1752,6 +1821,9 @@ static void powerStateGracefulTransitionToOff(const Event event)
          case Event::gracefulPowerOffTimerExpired:
              setPowerState(PowerState::on);
              break;
@@ -342,7 +340,7 @@ index f5e1c95..b537100 100644
          case Event::powerOffRequest:
              gracefulPowerOffTimer.cancel();
              setPowerState(PowerState::transitionToOff);
-@@ -1884,6 +1958,7 @@ static void powerStateCycleOff(const Event event)
+@@ -1796,6 +1868,7 @@ static void powerStateCycleOff(const Event event)
              powerCycleTimer.cancel();
              setPowerState(PowerState::waitForPSPowerOK);
              break;
@@ -350,7 +348,7 @@ index f5e1c95..b537100 100644
          case Event::powerButtonPressed:
              powerCycleTimer.cancel();
              psPowerOKWatchdogTimerStart();
-@@ -2006,6 +2081,39 @@ static void sioS5Handler(bool state)
+@@ -1913,6 +1986,36 @@ static void sioS5Handler(bool state)
      sendPowerControlEvent(powerControlEvent);
  }
  
@@ -358,8 +356,7 @@ index f5e1c95..b537100 100644
 +{
 +    powerButtonIface->set_property("ButtonPressed", true);
 +    powerButtonIface->set_property("ButtonPressed", false);
-+    phosphor::logging::log<phosphor::logging::level::INFO>(
-+        "powerButtonShortPressedOnHandler");
++    lg2::info("powerButtonShortPressedOnHandler");
 +    powerButtonPressLog();
 +    sendPowerControlEvent(Event::powerButtonShortPressedForOn);
 +    addRestartCause(RestartCause::powerButton);
@@ -369,8 +366,7 @@ index f5e1c95..b537100 100644
 +{
 +    powerButtonIface->set_property("ButtonPressed", true);
 +    powerButtonIface->set_property("ButtonPressed", false);
-+    phosphor::logging::log<phosphor::logging::level::INFO>(
-+        "powerButtonLongPressedForOffHandler");
++    lg2::info("powerButtonLongPressedForOffHandler");
 +    powerButtonPressLog();
 +    sendPowerControlEvent(Event::powerButtonLongPressedForOff);
 +}
@@ -379,8 +375,7 @@ index f5e1c95..b537100 100644
 +{
 +    resetButtonIface->set_property("ButtonPressed", true);
 +    resetButtonIface->set_property("ButtonPressed", false);
-+    phosphor::logging::log<phosphor::logging::level::INFO>(
-+        "powerButtonShortPressedForResetHandler");
++    lg2::info("powerButtonShortPressedForResetHandler");
 +    resetButtonPressLog();
 +    sendPowerControlEvent(Event::resetButtonPressed);
 +    addRestartCause(RestartCause::resetButton);
@@ -390,7 +385,7 @@ index f5e1c95..b537100 100644
  static void powerButtonHandler(bool state)
  {
      powerButtonIface->set_property("ButtonPressed", !state);
-@@ -2027,19 +2135,30 @@ static void powerButtonHandler(bool state)
+@@ -1933,18 +2036,29 @@ static void powerButtonHandler(bool state)
  
  static void resetButtonHandler(bool state)
  {
@@ -415,8 +410,7 @@ index f5e1c95..b537100 100644
 +        resetButtonIface->set_property("ButtonPressed", !state);
 +        if (!state)
          {
--            phosphor::logging::log<phosphor::logging::level::INFO>(
--                "reset button press masked");
+-            lg2::info("reset button press masked");
 +            resetButtonPressLog();
 +            if (!resetButtonMask)
 +            {
@@ -425,13 +419,12 @@ index f5e1c95..b537100 100644
 +            }
 +            else
 +            {
-+                phosphor::logging::log<phosphor::logging::level::INFO>(
-+                    "reset button press masked");
++                lg2::info("reset button press masked");
 +            }
          }
      }
  }
-@@ -2085,33 +2204,40 @@ static void nmiSetEnableProperty(bool value)
+@@ -1988,30 +2102,38 @@ static void nmiSetEnableProperty(bool value)
  
  static void nmiReset(void)
  {
@@ -442,60 +435,56 @@ index f5e1c95..b537100 100644
 +        static constexpr const uint8_t value = 1;
 +        const static constexpr int nmiOutPulseTimeMs = 200;
  
--    phosphor::logging::log<phosphor::logging::level::INFO>("NMI out action");
+-    lg2::info("NMI out action");
 -    nmiOutLine.set_value(value);
--    std::string logMsg =
--        nmiOutConfig.lineName + " set to " + std::to_string(value);
--    phosphor::logging::log<phosphor::logging::level::INFO>(logMsg.c_str());
+-    lg2::info("{GPIO_NAME} set to {GPIO_VALUE}", "GPIO_NAME",
+-              nmiOutConfig.lineName, "GPIO_VALUE", value);
 -    gpioAssertTimer.expires_after(std::chrono::milliseconds(nmiOutPulseTimeMs));
 -    gpioAssertTimer.async_wait([](const boost::system::error_code ec) {
 -        // restore the NMI_OUT GPIO line back to the opposite value
 -        nmiOutLine.set_value(!value);
--        std::string logMsg = nmiOutConfig.lineName + " released";
-+        phosphor::logging::log<phosphor::logging::level::INFO>("NMI out action");
-+        nmiOutLine.set_value(value);
-+        std::string logMsg =
-+            nmiOutConfig.lineName + " set to " + std::to_string(value);
-         phosphor::logging::log<phosphor::logging::level::INFO>(logMsg.c_str());
+-        lg2::info("{GPIO_NAME} released", "GPIO_NAME", nmiOutConfig.lineName);
 -        if (ec)
 -        {
 -            // operation_aborted is expected if timer is canceled before
 -            // completion.
 -            if (ec != boost::asio::error::operation_aborted)
++        lg2::info("NMI out action");
++        nmiOutLine.set_value(value);
++        lg2::info("{GPIO_NAME} set to {GPIO_VALUE}", "GPIO_NAME",
++                nmiOutConfig.lineName, "GPIO_VALUE", value);
 +        gpioAssertTimer.expires_after(std::chrono::milliseconds(nmiOutPulseTimeMs));
 +        gpioAssertTimer.async_wait([](const boost::system::error_code ec) {
 +            // restore the NMI_OUT GPIO line back to the opposite value
 +            nmiOutLine.set_value(!value);
-+            std::string logMsg = nmiOutConfig.lineName + " released";
-+            phosphor::logging::log<phosphor::logging::level::INFO>(logMsg.c_str());
++            lg2::info("{GPIO_NAME} released", "GPIO_NAME", nmiOutConfig.lineName);
 +            if (ec)
              {
--                std::string errMsg = nmiOutConfig.lineName +
--                                     " async_wait failed: " + ec.message();
--                phosphor::logging::log<phosphor::logging::level::ERR>(
--                    errMsg.c_str());
+-                lg2::error("{GPIO_NAME} async_wait failed: {ERROR_MSG}",
+-                           "GPIO_NAME", nmiOutConfig.lineName, "ERROR_MSG",
+-                           ec.message());
 +                // operation_aborted is expected if timer is canceled before
 +                // completion.
 +                if (ec != boost::asio::error::operation_aborted)
 +                {
-+                    std::string errMsg = nmiOutConfig.lineName +
-+                                        " async_wait failed: " + ec.message();
-+                    phosphor::logging::log<phosphor::logging::level::ERR>(
-+                        errMsg.c_str());
++                    lg2::error("{GPIO_NAME} async_wait failed: {ERROR_MSG}",
++                            "GPIO_NAME", nmiOutConfig.lineName, "ERROR_MSG",
++                            ec.message());
 +                }
              }
 -        }
 -    });
 +        });
-+    }else if (nmiOutConfig.type == ConfigType::DBUS_METHOD)
++    }
++    else if (nmiOutConfig.type == ConfigType::DBUS_METHOD)
 +    {
 +        dbusGPIOMethodCall(nmiOutConfig);
 +    }
 +
      // log to redfish
      nmiDiagIntLog();
-     phosphor::logging::log<phosphor::logging::level::INFO>(
-@@ -2207,7 +2333,13 @@ static void nmiButtonHandler(bool state)
+     lg2::info("NMI out action completed");
+@@ -2100,7 +2222,13 @@ static void nmiButtonHandler(bool state)
  
  static void idButtonHandler(bool state)
  {
@@ -510,7 +499,7 @@ index f5e1c95..b537100 100644
  }
  
  static void pltRstHandler(bool pltRst)
-@@ -2343,6 +2475,14 @@ static int loadConfigValues()
+@@ -2229,6 +2357,14 @@ static int loadConfigValues()
          {
              tempGpioData->type = ConfigType::DBUS;
          }
@@ -524,19 +513,15 @@ index f5e1c95..b537100 100644
 +        }
          else
          {
-             std::string errMsg = "Undefined Type : " + signalType;
-@@ -2481,11 +2621,26 @@ static sdbusplus::bus::match::match
-         static_cast<sdbusplus::bus::bus&>(*conn),
-         "type='signal',interface='org.freedesktop.DBus.Properties',member='"
-         "PropertiesChanged',arg0='" +
--            cfg.dbusName + "'",
-+            cfg.interface + "'",
+             lg2::error("{TYPE} is not a recognized power-control signal type",
+@@ -2364,7 +2500,23 @@ static sdbusplus::bus::match::match
          std::move(pulseEventMatcherCallback));
  }
  
 -int getProperty(ConfigData& configData)
 +static sdbusplus::bus::match::match
-+    dbusOneWaySignalMatcher(const ConfigData& cfg, std::function<void(bool)> onMatch)
++    dbusOneWaySignalMatcher(const ConfigData& cfg,
++                            std::function<void(bool)> onMatch)
 +{
 +    auto pulseEventMatcherCallback =
 +        [&cfg, onMatch](sdbusplus::message::message& msg) {
@@ -554,28 +539,25 @@ index f5e1c95..b537100 100644
  {
      auto method = conn->new_method_call(
          configData.dbusName.c_str(), configData.path.c_str(),
-@@ -2497,16 +2652,16 @@ int getProperty(ConfigData& configData)
-     {
-         phosphor::logging::log<phosphor::logging::level::ERR>(
-             "Error reading from Bus");
+@@ -2378,7 +2530,7 @@ int getProperty(ConfigData& configData)
+             "Error reading {PROPERTY} D-Bus property on interface {INTERFACE} and path {PATH}",
+             "PROPERTY", configData.lineName, "INTERFACE", configData.interface,
+             "PATH", configData.path);
 -        return -1;
 +        return false;
      }
--    std::variant<int> resp;
-+    std::variant<bool> resp;
+     std::variant<bool> resp;
      reply.read(resp);
--    auto respValue = std::get_if<int>(&resp);
-+    auto respValue = std::get_if<bool>(&resp);
-     if (!respValue)
+@@ -2387,7 +2539,7 @@ int getProperty(ConfigData& configData)
      {
-         phosphor::logging::log<phosphor::logging::level::ERR>(
-             "Error reading response");
+         lg2::error("Error: {PROPERTY} D-Bus property is not the expected type",
+                    "PROPERTY", configData.lineName);
 -        return -1;
 +        return false;
      }
      return (*respValue);
  }
-@@ -2664,22 +2819,40 @@ int main(int argc, char* argv[])
+@@ -2540,22 +2692,40 @@ int main(int argc, char* argv[])
          }
      }
  
@@ -627,7 +609,7 @@ index f5e1c95..b537100 100644
      // Request RESET_BUTTON GPIO events
      if (resetButtonConfig.type == ConfigType::GPIO)
      {
-@@ -2695,6 +2868,12 @@ int main(int argc, char* argv[])
+@@ -2571,6 +2741,12 @@ int main(int argc, char* argv[])
              power_control::dbusGPIOMatcher(resetButtonConfig,
                                             resetButtonHandler);
      }
@@ -640,7 +622,7 @@ index f5e1c95..b537100 100644
  
      // Request NMI_BUTTON GPIO events
      if (nmiButtonConfig.type == ConfigType::GPIO)
-@@ -2725,6 +2904,12 @@ int main(int argc, char* argv[])
+@@ -2601,6 +2777,12 @@ int main(int argc, char* argv[])
          static sdbusplus::bus::match::match idButtonEventMonitor =
              power_control::dbusGPIOMatcher(idButtonConfig, idButtonHandler);
      }
@@ -653,12 +635,13 @@ index f5e1c95..b537100 100644
  
  #ifdef USE_PLT_RST
      sdbusplus::bus::match::match pltRstMatch(
-@@ -2757,44 +2942,51 @@ int main(int argc, char* argv[])
+@@ -2633,42 +2815,52 @@ int main(int argc, char* argv[])
      }
  
      // initialize NMI_OUT GPIO.
 -    if (!nmiOutConfig.lineName.empty())
-+    if (!nmiOutConfig.lineName.empty() && nmiOutConfig.type != ConfigType::DBUS_METHOD)
++    if (!nmiOutConfig.lineName.empty()
++        && nmiOutConfig.type != ConfigType::DBUS_METHOD)
      {
          setGPIOOutput(nmiOutConfig.lineName, 0, nmiOutLine);
      }
@@ -671,24 +654,23 @@ index f5e1c95..b537100 100644
 -        if (!setGPIOOutput(powerOutConfig.lineName, !powerOutConfig.polarity,
 -                           line))
 +        if (!powerOutConfig.lineName.empty())
-         {
-+            if (!setGPIOOutput(powerOutConfig.lineName, !powerOutConfig.polarity,
-+                            line))
++        {
++            if (!setGPIOOutput(
++                    powerOutConfig.lineName, !powerOutConfig.polarity, line))
 +            {
 +                return -1;
 +            }
 +        }
 +        else
-+        {
-+            phosphor::logging::log<phosphor::logging::level::ERR>(
+         {
++            lg2::error(
 +                "powerOut name should be configured from json config file");
              return -1;
          }
      }
 -    else
 -    {
--        phosphor::logging::log<phosphor::logging::level::ERR>(
--            "powerOut name should be configured from json config file");
+-        lg2::error("powerOut name should be configured from json config file");
 -        return -1;
 -    }
  
@@ -698,24 +680,23 @@ index f5e1c95..b537100 100644
 -        if (!setGPIOOutput(resetOutConfig.lineName, !resetOutConfig.polarity,
 -                           line))
 +        if (!resetOutConfig.lineName.empty())
-+        {
-+            if (!setGPIOOutput(resetOutConfig.lineName, !resetOutConfig.polarity,
-+                            line))
+         {
++            if (!setGPIOOutput(
++                    resetOutConfig.lineName, !resetOutConfig.polarity, line))
 +            {
 +                return -1;
 +            }
 +        }
 +        else
-         {
-+            phosphor::logging::log<phosphor::logging::level::ERR>(
++        {
++            lg2::error(
 +                "ResetOut name should be configured from json config file");
              return -1;
          }
      }
 -    else
 -    {
--        phosphor::logging::log<phosphor::logging::level::ERR>(
--            "ResetOut name should be configured from json config file");
+-        lg2::error("ResetOut name should be configured from json config file");
 -        return -1;
 -    }
      // Release line
@@ -725,7 +706,7 @@ index f5e1c95..b537100 100644
  
      // Initialize the power state
      powerState = PowerState::off;
-@@ -2814,6 +3006,7 @@ int main(int argc, char* argv[])
+@@ -2688,6 +2880,7 @@ int main(int argc, char* argv[])
              powerState = PowerState::on;
          }
      }
@@ -733,7 +714,7 @@ index f5e1c95..b537100 100644
      // Initialize the power state storage
      if (initializePowerStateStorage() < 0)
      {
-@@ -2823,7 +3016,7 @@ int main(int argc, char* argv[])
+@@ -2697,7 +2890,7 @@ int main(int argc, char* argv[])
      // Check if we need to start the Power Restore policy
      powerRestorePolicyCheck();
  
@@ -741,8 +722,8 @@ index f5e1c95..b537100 100644
 +    if (!nmiOutConfig.lineName.empty())
          nmiSourcePropertyMonitor();
  
-     phosphor::logging::log<phosphor::logging::level::INFO>(
-@@ -3118,7 +3311,8 @@ int main(int argc, char* argv[])
+     lg2::info("Initializing power state.");
+@@ -2981,7 +3174,8 @@ int main(int argc, char* argv[])
      sdbusplus::asio::object_server buttonsServer =
          sdbusplus::asio::object_server(conn);
  
@@ -752,7 +733,7 @@ index f5e1c95..b537100 100644
      {
          // Power Button Interface
          power_control::powerButtonIface = buttonsServer.add_interface(
-@@ -3133,12 +3327,15 @@ int main(int argc, char* argv[])
+@@ -2996,12 +3190,15 @@ int main(int argc, char* argv[])
                      {
                          return 1;
                      }
@@ -770,9 +751,9 @@ index f5e1c95..b537100 100644
 +                            return 0;
 +                        }
                      }
-                     phosphor::logging::log<phosphor::logging::level::INFO>(
-                         "Power Button Masked.");
-@@ -3160,7 +3357,11 @@ int main(int argc, char* argv[])
+                     lg2::info("Power Button Masked.");
+                 }
+@@ -3021,7 +3218,11 @@ int main(int argc, char* argv[])
  
          // Check power button state
          bool powerButtonPressed;
@@ -785,7 +766,7 @@ index f5e1c95..b537100 100644
          {
              powerButtonPressed = powerButtonLine.get_value() == 0;
          }
-@@ -3191,13 +3392,17 @@ int main(int argc, char* argv[])
+@@ -3052,12 +3253,15 @@ int main(int argc, char* argv[])
                      {
                          return 1;
                      }
@@ -803,11 +784,9 @@ index f5e1c95..b537100 100644
 +                            return 0;
 +                        }
                      }
-+
-                     phosphor::logging::log<phosphor::logging::level::INFO>(
-                         "Reset Button Masked.");
+                     lg2::info("Reset Button Masked.");
                  }
-@@ -3222,10 +3427,14 @@ int main(int argc, char* argv[])
+@@ -3081,10 +3285,14 @@ int main(int argc, char* argv[])
          {
              resetButtonPressed = resetButtonLine.get_value() == 0;
          }
@@ -823,7 +802,7 @@ index f5e1c95..b537100 100644
  
          resetButtonIface->register_property("ButtonPressed",
                                              resetButtonPressed);
-@@ -3233,7 +3442,7 @@ int main(int argc, char* argv[])
+@@ -3092,7 +3300,7 @@ int main(int argc, char* argv[])
          resetButtonIface->initialize();
      }
  
@@ -832,7 +811,7 @@ index f5e1c95..b537100 100644
      {
          // NMI Button Interface
          nmiButtonIface = buttonsServer.add_interface(
-@@ -3280,7 +3489,7 @@ int main(int argc, char* argv[])
+@@ -3137,7 +3345,7 @@ int main(int argc, char* argv[])
          nmiButtonIface->initialize();
      }
  
@@ -841,7 +820,7 @@ index f5e1c95..b537100 100644
      {
          // NMI out Service
          sdbusplus::asio::object_server nmiOutServer =
-@@ -3294,7 +3503,7 @@ int main(int argc, char* argv[])
+@@ -3151,7 +3359,7 @@ int main(int argc, char* argv[])
          nmiOutIface->initialize();
      }
  
@@ -850,7 +829,7 @@ index f5e1c95..b537100 100644
      {
          // ID Button Interface
          idButtonIface = buttonsServer.add_interface(
-@@ -3307,10 +3516,14 @@ int main(int argc, char* argv[])
+@@ -3164,10 +3372,14 @@ int main(int argc, char* argv[])
          {
              idButtonPressed = idButtonLine.get_value() == 0;
          }
